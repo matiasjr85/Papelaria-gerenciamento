@@ -2,9 +2,35 @@
 
 Aplicação web **multi-tenant** para gestão completa de uma papelaria personalizada: do controle de **matéria-prima** (com custo **FIFO**), passando pela **produção** de produtos via receita (BOM), até **vendas**, **devoluções** e um **dashboard financeiro** com lucro real.
 
-🔗 **Aplicação no ar:** https://sistema-3aj.vercel.app
+🔗 **Aplicação no ar:** https://sistema-3aj.vercel.app · **Conta demo:** `demo@3aj.com` / `demo2026`
 
 > Cada usuário enxerga **somente os próprios dados** (isolamento multi-tenant em todas as queries).
+
+---
+
+## 📸 Capturas de tela
+
+### Dashboard financeiro
+Receita, gastos, **lucro real** (receita − custo FIFO), margem, evolução mensal, top produtos e composição de gastos.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Produtos & Montagem
+Produtos com receita (BOM), custo, preço, estoque e margem · Montagem com consumo FIFO de matéria-prima.
+
+| Produtos | Montagem (FIFO) |
+|---|---|
+| ![Produtos](docs/screenshots/produtos.png) | ![Montagem](docs/screenshots/montagem.png) |
+
+### Matéria-Prima, Vendas e Descartes
+
+| Matéria-Prima (com filtros) | Vendas |
+|---|---|
+| ![Matéria-Prima](docs/screenshots/materia-prima.png) | ![Vendas](docs/screenshots/vendas.png) |
+
+| Descartes | Login |
+|---|---|
+| ![Descartes](docs/screenshots/descartes.png) | ![Login](docs/screenshots/login.png) |
 
 ---
 
