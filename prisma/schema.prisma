@@ -1,0 +1,250 @@
+// Prisma Schema — 3AJ Papelaria Sistema Web
+// SQLite para desenvolvimento local
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")          // pooled (pgbouncer) — runtime serverless
+  directUrl = env("DATABASE_URL_UNPOOLED") // conexão direta — migrations
+}
+
+// ==================== AUTH ====================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  nome         String
+  passwordHash String
+  papelaria    String   @default("3AJ Papelaria")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relações
+  materiasPrimas   MateriaPrima[]
+  equipamentos     Equipamento[]
+  pecasReposicao   PecaReposicao[]
+  produtos         Produto[]
+  vendas           Venda[]
+  descartes        HistoricoDescarte[]
+  sessions         Session[]
+}
+
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==================== MATÉRIA-PRIMA ====================
+
+model MateriaPrima {
+  id           String   @id @default(cuid())
+  userId       String
+  nome         String
+  unidade      String
+  dataCompra   DateTime
+  qtdComprada  Float
+  unidPorItem  Float    @default(1)
+  valorTotal   Float
+  valorUnitario Float
+  estoqueLote  Float
+  observacao   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  especificacoes        EspecificacaoProduto[]
+  descartes             HistoricoDescarte[]
+  consumos              ConsumoProducao[]
+
+  @@index([userId])
+  @@index([userId, dataCompra])
+  @@index([userId, estoqueLote])
+}
+
+// ==================== EQUIPAMENTOS ====================
+
+model Equipamento {
+  id          String   @id @default(cuid())
+  userId      String
+  nome        String
+  valorTotal  Float
+  dataCompra  DateTime
+  descricao   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pecasReposicao PecaReposicao[]
+
+  @@index([userId])
+  @@index([userId, dataCompra])
+}
+
+// ==================== PEÇAS DE REPOSIÇÃO ====================
+
+model PecaReposicao {
+  id            String   @id @default(cuid())
+  userId        String
+  equipamentoId String?
+  nome          String
+  valorTotal    Float
+  dataCompra    DateTime
+  descricao     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  equipamento Equipamento? @relation(fields: [equipamentoId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, dataCompra])
+}
+
+// ==================== PRODUTOS ====================
+
+model Produto {
+  id             String        @id @default(cuid())
+  userId         String
+  nome           String
+  custoUnitario  Float         @default(0)
+  precoSugerido  Float         @default(0)
+  precoVenda     Float         @default(0)
+  estoque        Float         @default(0)
+  status         StatusProduto @default(ATIVO)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user                    User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  especificacoes          EspecificacaoProduto[] @relation("ProdutoPrincipal")
+  comoComponente          EspecificacaoProduto[] @relation("ProdutoComponente")
+  vendas                  Venda[]
+  descartes               HistoricoDescarte[]
+  producoes               Producao[]
+
+  @@index([userId])
+  @@index([userId, status])
+}
+
+enum StatusProduto {
+  ATIVO
+  INATIVO
+}
+
+// ==================== BOM (BILL OF MATERIALS) ====================
+
+model EspecificacaoProduto {
+  id                  String          @id @default(cuid())
+  produtoId           String
+  tipoComponente      TipoComponente
+  materiaPrimaId      String?
+  componenteProdutoId String?
+  quantidade          Float
+  createdAt           DateTime        @default(now())
+
+  produto             Produto          @relation("ProdutoPrincipal", fields: [produtoId], references: [id], onDelete: Cascade)
+  materiaPrima        MateriaPrima?    @relation(fields: [materiaPrimaId], references: [id], onDelete: SetNull)
+  componenteProduto   Produto?         @relation("ProdutoComponente", fields: [componenteProdutoId], references: [id], onDelete: SetNull)
+}
+
+enum TipoComponente {
+  MATERIA_PRIMA
+  PRODUTO
+}
+
+// ==================== PRODUÇÃO ====================
+
+model Producao {
+  id              String   @id @default(cuid())
+  userId          String
+  produtoId       String
+  quantidadeProduzida Float
+  custoTotal      Float
+  custoUnitario   Float
+  dataProducao    DateTime @default(now())
+  observacao      String?
+  createdAt       DateTime @default(now())
+
+  produto  Produto          @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  consumos ConsumoProducao[]
+}
+
+model ConsumoProducao {
+  id              String  @id @default(cuid())
+  producaoId      String
+  materiaPrimaId  String
+  qtdConsumida    Float
+  valorUnitario   Float
+  valorTotal      Float
+
+  producao     Producao     @relation(fields: [producaoId], references: [id], onDelete: Cascade)
+  materiaPrima MateriaPrima @relation(fields: [materiaPrimaId], references: [id], onDelete: Cascade)
+}
+
+// ==================== VENDAS ====================
+
+model Venda {
+  id              String      @id @default(cuid())
+  userId          String
+  produtoId       String
+  produtoNome     String      // snapshot
+  quantidade      Float
+  custoUnitario   Float       // snapshot
+  precoVenda      Float       // snapshot (congelado)
+  taxaPct         Float       @default(0)
+  servicoValor    Float       @default(0)
+  totalGastos     Float       // taxas + serviço (snapshot)
+  valorVenda      Float       // precoVenda × qtd (snapshot)
+  lucro           Float       // valorVenda - totalGastos (snapshot)
+  dataVenda       DateTime    @default(now())
+  status          StatusVenda @default(ATIVA)
+  idempotencyKey  String?     @unique
+  observacao      String?
+  createdAt       DateTime    @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, dataVenda])
+}
+
+enum StatusVenda {
+  ATIVA
+  DEVOLVIDA
+}
+
+// ==================== DESCARTES ====================
+
+model HistoricoDescarte {
+  id             String        @id @default(cuid())
+  userId         String
+  tipo           TipoDescarte
+  materiaPrimaId String?
+  produtoId      String?
+  quantidade     Float
+  dataDescarte   DateTime      @default(now())
+  motivo         String?
+  createdAt      DateTime      @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materiaPrima MateriaPrima? @relation(fields: [materiaPrimaId], references: [id], onDelete: SetNull)
+  produto      Produto?      @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, dataDescarte])
+}
+
+enum TipoDescarte {
+  MATERIA_PRIMA
+  PRODUTO
+}

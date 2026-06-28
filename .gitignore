@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*.key
 
 # debug
 npm-debug.log*
@@ -30,8 +31,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — NUNCA commitar (.env.example é a exceção permitida)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 .env*
+!.env.example
+
+# banco de dados local (contém hashes de senha e tokens de sessão)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/dev.db
+prisma/*.db
 
 # vercel
 .vercel
@@ -39,3 +54,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# documento de planejamento da integração Shopee — NÃO publicar (mantido só localmente)
+docs/shopee-integracao-plano.md
+
+# scripts de debug/verificação manual (não fazem parte do produto)
+/debug*.mjs
+/verify*.mjs
+/teste_*.mjs
+
+# arquivos de teste/relatório do Playwright
+/test-results/
+/playwright-report/
